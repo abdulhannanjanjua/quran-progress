@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Quran Progress</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<header class="topbar">
+  <a class="brand" href="#/">Quran Progress</a>
+  <nav class="nav">
+    <a href="#/student/affan" data-nav="student/affan">Affan</a>
+    <a href="#/student/mashal" data-nav="student/mashal">Mashal</a>
+    <a href="#/quran" data-nav="quran">Quran</a>
+    <a href="#/settings" data-nav="settings">Settings</a>
+  </nav>
+</header>
+
+<main id="view"></main>
+
+<!-- ============ Update position dialog ============ -->
+<div class="modal-backdrop" id="positionModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="positionTitle">
+    <h2 id="positionTitle">Update Current Position</h2>
+    <form id="positionForm">
+      <label>Surah
+        <select name="surah" id="positionSurah" required></select>
+      </label>
+      <div class="row">
+        <label>Ayah
+          <input type="number" name="ayah" min="1" step="1" inputmode="numeric" required>
+        </label>
+        <label>Page
+          <input type="number" name="page" min="1" max="851" step="1" inputmode="numeric" required>
+        </label>
+      </div>
+      <label>Juz
+        <select name="juz" id="positionJuz"></select>
+        <span class="hint">Filled in automatically from the surah and ayah. Change it if you need to.</span>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn-plain" data-close>Cancel</button>
+        <button type="submit" class="btn-primary">Save Position</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- ============ Add / edit lesson dialog ============ -->
+<div class="modal-backdrop" id="lessonModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="lessonTitle">
+    <h2 id="lessonTitle">Add Lesson</h2>
+    <form id="lessonForm">
+      <label>Date
+        <input type="date" name="date" required>
+      </label>
+      <label>Surah
+        <select name="surah" id="lessonSurah" required></select>
+      </label>
+      <div class="row">
+        <label>From Ayah
+          <input type="number" name="fromAyah" min="1" step="1" inputmode="numeric" required>
+        </label>
+        <label>To Ayah
+          <input type="number" name="toAyah" min="1" step="1" inputmode="numeric" required>
+        </label>
+      </div>
+      <label>Page
+        <input type="number" name="page" min="1" max="851" step="1" inputmode="numeric">
+      </label>
+      <div class="row">
+        <label>Mark
+          <select name="mark" id="lessonMark" required></select>
+        </label>
+        <label>Category
+          <select name="category" id="lessonCategory" required>
+            <option>Excellent</option>
+            <option>Good</option>
+            <option>Needs Revision</option>
+          </select>
+        </label>
+      </div>
+      <label>Comment
+        <textarea name="comment" rows="3" placeholder="e.g. Good reading, revise ayahs 6-10"></textarea>
+      </label>
+      <label class="check">
+        <input type="checkbox" name="revisionRequired">
+        <span>Revision required</span>
+      </label>
+      <label class="check">
+        <input type="checkbox" name="updatePosition" checked>
+        <span>Update current position to this lesson</span>
+      </label>
+      <div class="modal-actions">
+        <button type="button" class="btn-plain" data-close>Cancel</button>
+        <button type="submit" class="btn-primary">Save Lesson</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="quran-data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
