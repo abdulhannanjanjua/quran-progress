@@ -35,10 +35,13 @@ function defaultData() {
   };
 }
 
+/* A student's position is just a page number. The surah and juz are
+   worked out from it using the tables in quran-data.js, so the three
+   can never drift out of step with each other. */
 function newStudent(name) {
   return {
     name: name,
-    currentPosition: { juz: 1, surah: 1, ayah: 1, page: QURAN_FIRST_PAGE },
+    currentPosition: { page: QURAN_FIRST_PAGE },
     lessons: []
   };
 }
@@ -69,11 +72,10 @@ function mergeWithDefaults(saved) {
     if (!s) return;
     if (s.name) base.students[key].name = s.name;
     if (s.currentPosition) {
+      // Older backups also stored juz, surah and ayah. Only the page
+      // is kept now; everything else is derived from it.
       base.students[key].currentPosition = {
-        juz:   Number(s.currentPosition.juz)   || 1,
-        surah: Number(s.currentPosition.surah) || 1,
-        ayah:  Number(s.currentPosition.ayah)  || 1,
-        page:  Number(s.currentPosition.page)  || QURAN_FIRST_PAGE
+        page: Number(s.currentPosition.page) || QURAN_FIRST_PAGE
       };
     }
     if (Array.isArray(s.lessons)) base.students[key].lessons = s.lessons;
@@ -142,17 +144,6 @@ function latestLesson(student) {
   return list.length ? list[0] : null;
 }
 
-/* A simple, honest progress measure: how far through the 30 juz. */
-function progressPercent(student) {
-  var juz = student.currentPosition.juz || 1;
-  return Math.round((juz / 30) * 100);
-}
-
-function progressBar(percent) {
-  return '<div class="bar"><div class="bar-fill" style="width:' +
-         percent + '%"></div></div>';
-}
-
 function revisionBadge(student) {
   var last = latestLesson(student);
   if (last && last.revisionRequired) {
@@ -169,27 +160,23 @@ function revisionBadge(student) {
 function renderHome() {
   var cards = ["affan", "mashal"].map(function (key) {
     var s = data.students[key];
-    var pos = s.currentPosition;
+    var page = s.currentPosition.page;
+    var surah = surahForPage(page);
     var last = latestLesson(s);
-    var pct = progressPercent(s);
 
     return '' +
       '<a class="card student-card" href="#/student/' + key + '">' +
         '<h2>' + esc(s.name) + '</h2>' +
         '<dl class="facts">' +
-          '<div><dt>Juz</dt><dd>' + pos.juz + '</dd></div>' +
-          '<div><dt>Surah</dt><dd>' + esc(getSurah(pos.surah).name) + '</dd></div>' +
-          '<div><dt>Ayah</dt><dd>' + pos.ayah + '</dd></div>' +
-          '<div><dt>Page</dt><dd>' + pos.page + '</dd></div>' +
+          '<div><dt>Page</dt><dd>' + page + '</dd></div>' +
+          '<div><dt>Surah</dt><dd>' + esc(getSurah(surah).name) + '</dd></div>' +
+          '<div><dt>Juz</dt><dd>' + juzForPage(page) + '</dd></div>' +
           '<div><dt>Last lesson</dt><dd>' +
             (last ? formatDate(last.date) : "None yet") + '</dd></div>' +
           '<div><dt>Latest mark</dt><dd>' +
             (last ? last.mark + "/10" : "Not yet") + '</dd></div>' +
         '</dl>' +
         revisionBadge(s) +
-        '<p class="progress-label">Juz ' + pos.juz + ' of 30' +
-          ' &middot; Surah ' + pos.surah + ' of 114</p>' +
-        progressBar(pct) +
       '</a>';
   }).join("");
 
@@ -204,8 +191,8 @@ function renderStudent(key) {
   var s = data.students[key];
   if (!s) { location.hash = "#/"; return; }
 
-  var pos = s.currentPosition;
-  var pct = progressPercent(s);
+  var page = s.currentPosition.page;
+  var juz = juzForPage(page);
   var lessons = sortedLessons(s);
 
   var history = lessons.length
@@ -219,25 +206,16 @@ function renderStudent(key) {
     '<section class="card">' +
       '<h2>Current Position</h2>' +
       '<dl class="facts">' +
-        '<div><dt>Juz</dt><dd>' + pos.juz + '</dd></div>' +
-        '<div><dt>Surah</dt><dd>' + esc(getSurah(pos.surah).name) + '</dd></div>' +
-        '<div><dt>Ayah</dt><dd>' + pos.ayah + '</dd></div>' +
-        '<div><dt>Page</dt><dd>' + pos.page + '</dd></div>' +
+        '<div><dt>Page</dt><dd>' + page + '</dd></div>' +
+        '<div><dt>Surah</dt><dd>' + esc(surahLabelForPage(page)) + '</dd></div>' +
+        '<div><dt>Juz</dt><dd>' + juz + ' of 30</dd></div>' +
       '</dl>' +
       revisionBadge(s) +
       '<div class="button-row">' +
         '<button class="btn-primary" data-action="update-position">Update Position</button>' +
         '<button class="btn-primary" data-action="add-lesson">+ Add Lesson</button>' +
-        '<a class="btn-plain" href="#/quran?page=' + pos.page + '">Open Quran at page ' + pos.page + '</a>' +
+        '<a class="btn-plain" href="#/quran?page=' + page + '">Open Quran at page ' + page + '</a>' +
       '</div>' +
-    '</section>' +
-
-    '<section class="card">' +
-      '<h2>Progress</h2>' +
-      progressBar(pct) +
-      '<p class="progress-label">Juz ' + pos.juz + ' of 30 &middot; ' + pct + '%</p>' +
-      '<p class="progress-label">Currently in Surah ' + pos.surah +
-        ' of 114: ' + esc(getSurah(pos.surah).name) + '</p>' +
       '<p class="progress-label">' + lessons.length + ' lesson' +
         (lessons.length === 1 ? '' : 's') + ' recorded</p>' +
     '</section>' +
@@ -471,9 +449,23 @@ function applyZoom() {
      { x: 0.08, y: 0.42, w: 0.84, h: 0.05 }
 */
 
+/* Read-only. Pages with no highlights are deliberately not given an
+   entry, so simply looking through the Quran does not fill the backup
+   file with hundreds of empty lists. */
 function pageHighlights() {
+  return data.highlights[quranPage] || [];
+}
+
+function addHighlight(box) {
   if (!data.highlights[quranPage]) data.highlights[quranPage] = [];
-  return data.highlights[quranPage];
+  data.highlights[quranPage].push(box);
+}
+
+function removeHighlight(index) {
+  var list = data.highlights[quranPage];
+  if (!list) return;
+  list.splice(index, 1);
+  if (!list.length) delete data.highlights[quranPage];
 }
 
 function drawHighlights() {
@@ -557,7 +549,7 @@ function setUpHighlightDragging() {
       for (var i = list.length - 1; i >= 0; i--) {
         var h = list[i];
         if (p.x >= h.x && p.x <= h.x + h.w && p.y >= h.y && p.y <= h.y + h.h) {
-          list.splice(i, 1);
+          removeHighlight(i);
           saveData();
           drawHighlights();
           return;
@@ -569,7 +561,7 @@ function setUpHighlightDragging() {
     // Very thin drags are almost certainly meant as a whole line.
     if (box.h < 0.012) { box.h = 0.028; }
 
-    pageHighlights().push(box);
+    addHighlight(box);
     saveData();
     drawHighlights();
   }
@@ -610,21 +602,13 @@ function fillSurahOptions(select) {
   select.innerHTML = html;
 }
 
-function fillJuzOptions(select) {
-  var html = "";
-  for (var j = 1; j <= 30; j++) html += '<option value="' + j + '">Juz ' + j + '</option>';
-  select.innerHTML = html;
-}
-
 function fillMarkOptions(select) {
   var html = "";
   for (var m = 10; m >= 0; m--) html += '<option value="' + m + '">' + m + '/10</option>';
   select.innerHTML = html;
 }
 
-fillSurahOptions(document.getElementById("positionSurah"));
 fillSurahOptions(document.getElementById("lessonSurah"));
-fillJuzOptions(document.getElementById("positionJuz"));
 fillMarkOptions(document.getElementById("lessonMark"));
 
 function openModal(el) {
@@ -654,33 +638,33 @@ document.addEventListener("keydown", function (e) {
 
 var positionForm = document.getElementById("positionForm");
 
+var positionDerived = document.getElementById("positionDerived");
+
 function openPositionModal(key) {
   currentKey = key;
-  var pos = data.students[key].currentPosition;
-  positionForm.surah.value = pos.surah;
-  positionForm.ayah.value = pos.ayah;
-  positionForm.page.value = pos.page;
-  positionForm.juz.value = pos.juz;
+  positionForm.page.value = data.students[key].currentPosition.page;
+  showDerivedPosition();
   openModal(positionModal);
 }
 
-/* Keep the juz in step with the surah and ayah as they are typed. */
-function syncPositionJuz() {
-  var surah = Number(positionForm.surah.value);
-  var ayah = Number(positionForm.ayah.value) || 1;
-  positionForm.juz.value = juzFor(surah, ayah);
+/* Show the teacher which surah and juz the page she typed lands in,
+   so she can see straight away that she has the right page. */
+function showDerivedPosition() {
+  var page = Number(positionForm.page.value);
+  if (!page || page < 1 || page > QURAN_LAST_PAGE) {
+    positionDerived.textContent = "Enter a page between 1 and " + QURAN_LAST_PAGE + ".";
+    return;
+  }
+  positionDerived.textContent =
+    "Page " + page + ": " + surahLabelForPage(page) +
+    ", Juz " + juzForPage(page) + " of 30.";
 }
-positionForm.surah.addEventListener("change", syncPositionJuz);
-positionForm.ayah.addEventListener("input", syncPositionJuz);
+positionForm.page.addEventListener("input", showDerivedPosition);
 
 positionForm.addEventListener("submit", function (e) {
   e.preventDefault();
-  var s = data.students[currentKey];
-  s.currentPosition = {
-    juz:   Number(positionForm.juz.value),
-    surah: Number(positionForm.surah.value),
-    ayah:  Number(positionForm.ayah.value),
-    page:  Number(positionForm.page.value)
+  data.students[currentKey].currentPosition = {
+    page: clampPage(positionForm.page.value)
   };
   saveData();
   closeModal(positionModal);
@@ -714,12 +698,12 @@ function openLessonModal(key, lessonId) {
     lessonForm.revisionRequired.checked = !!l.revisionRequired;
     lessonForm.updatePosition.checked = false;
   } else {
-    var pos = student.currentPosition;
+    var page = student.currentPosition.page;
     lessonForm.date.value = todayIso();
-    lessonForm.surah.value = pos.surah;
-    lessonForm.fromAyah.value = pos.ayah;
-    lessonForm.toAyah.value = pos.ayah;
-    lessonForm.page.value = pos.page;
+    lessonForm.page.value = page;
+    lessonForm.surah.value = surahForPage(page);
+    lessonForm.fromAyah.value = 1;
+    lessonForm.toAyah.value = 1;
     lessonForm.mark.value = 10;
     lessonForm.category.value = "Excellent";
     lessonForm.comment.value = "";
@@ -728,6 +712,15 @@ function openLessonModal(key, lessonId) {
   }
   openModal(lessonModal);
 }
+
+/* Typing a page picks the surah for the teacher. She can still
+   change the surah afterwards if the page spans two of them. */
+lessonForm.page.addEventListener("input", function () {
+  var page = Number(lessonForm.page.value);
+  if (page >= 1 && page <= QURAN_LAST_PAGE) {
+    lessonForm.surah.value = surahForPage(page);
+  }
+});
 
 /* Suggest a category from the mark. The teacher can still change it. */
 lessonForm.mark.addEventListener("change", function () {
@@ -768,13 +761,8 @@ lessonForm.addEventListener("submit", function (e) {
     student.lessons.push(lesson);
   }
 
-  if (lessonForm.updatePosition.checked) {
-    student.currentPosition = {
-      juz:   juzFor(lesson.surah, lesson.toAyah),
-      surah: lesson.surah,
-      ayah:  lesson.toAyah,
-      page:  lesson.page || student.currentPosition.page
-    };
+  if (lessonForm.updatePosition.checked && lesson.page) {
+    student.currentPosition = { page: lesson.page };
   }
 
   saveData();

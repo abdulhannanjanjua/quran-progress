@@ -101,13 +101,18 @@ The stored shape is deliberately plain:
 {
   version: 1,
   students: {
-    affan:  { name, currentPosition: { juz, surah, ayah, page }, lessons: [ ... ] },
-    mashal: { name, currentPosition: { juz, surah, ayah, page }, lessons: [ ... ] }
+    affan:  { name, currentPosition: { page: 430 }, lessons: [ ... ] },
+    mashal: { name, currentPosition: { page: 846 }, lessons: [ ... ] }
   },
   settings:   { lastQuranPage: 430 },
   highlights: { "430": [ { x, y, w, h } ] }
 }
 ```
+
+A child's position is **only a page number**. The surah and the juz are
+worked out from it, so they can never disagree with each other. Older
+backups that also stored a surah, ayah and juz still import; those extra
+fields are dropped and recalculated.
 
 Each lesson is:
 
@@ -134,7 +139,9 @@ There is no build step and no framework. If you change a line and refresh the br
 
 A few things worth knowing if you come back to this in a year:
 
-* The juz number is worked out from the surah and ayah using `JUZ_STARTS` in `quran-data.js`, so the teacher does not have to know it. She can still override it.
+* **The page number is the single source of truth.** `quran-data.js` holds two lookup tables, `SURAH_START_PAGE` (114 numbers) and `JUZ_START_PAGE` (30 numbers), giving the page each surah and each juz begins on *in this particular mushaf*. The teacher types a page and the app names the surah and the juz. Nothing has to be kept in step by hand, which is what used to let a position read "page 500, Al-Baqarah, Juz 5" when those three cannot all be true at once.
+* Those two tables were read off the header line printed at the top of every page of the PDF, then checked: for all thirty juz, the surah the tables give at the juz start page is the surah that juz is known to begin in. If you ever swap in a different Quran PDF, these two tables are the thing you must replace.
+* Near the end of the Quran the surahs are short and two or three share a page, so `surahsForPage` returns a list. Page 846 correctly reads "Al-Asr, Al-Humazah, Al-Fil".
 * Choosing a mark suggests a category and ticks "revision required" below 7 out of 10. She can change either.
 * "Update current position to this lesson" is ticked by default when adding a lesson and unticked when editing one, since editing an old lesson should not drag the child's position backwards.
 * Highlights are stored as four fractions of the page rather than pixels, which is why they land in the right place on a phone and a desktop and at every zoom level.

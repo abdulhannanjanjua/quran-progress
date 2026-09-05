@@ -124,38 +124,100 @@ var SURAHS = [
   { n: 114, name: "An-Nas",         ayahs: 6   }
 ];
 
-/* Where each juz begins: [surah number, ayah number].
-   Index 0 is juz 1, index 29 is juz 30. */
-var JUZ_STARTS = [
-  [1, 1],   [2, 142], [2, 253], [3, 93],  [4, 24],
-  [4, 148], [5, 82],  [6, 111], [7, 88],  [8, 41],
-  [9, 93],  [11, 6],  [12, 53], [15, 1],  [17, 1],
-  [18, 75], [21, 1],  [23, 1],  [25, 21], [27, 56],
-  [29, 46], [33, 31], [36, 28], [39, 32], [41, 47],
-  [46, 1],  [51, 31], [58, 1],  [67, 1],  [78, 1]
-];
-
-/* The Quran PDF used by this app. Page 1 is the cover, Surah
-   Al-Fatihah starts on page 4, and the last page of Quran text
-   is page 849. The page numbers printed on the pages match the
-   PDF page numbers exactly, so no offset is needed. */
+/* The Quran PDF used by this app. Page 1 is the cover, pages 2 and 3
+   are the tajweed colour key, Surah Al-Fatihah starts on page 4 and
+   Surah An-Nas is on page 850. The page numbers printed on the pages
+   match the file numbers exactly, so no offset is needed. */
 var QURAN_FIRST_PAGE = 4;
 var QURAN_LAST_PAGE = 851;
+
+/* ------------------------------------------------------------
+   Page tables for THIS mushaf (13 line, 851 pages).
+
+   SURAH_START_PAGE[n - 1] is the first page whose printed header
+   names surah n. JUZ_START_PAGE[j - 1] is the same for juz j.
+
+   These were read off the header line printed at the top of every
+   page. Several short surahs share a page near the end, which is
+   why some numbers repeat.
+
+   They were checked against the standard juz boundaries: for all
+   30 juz, the surah these tables give at the juz start page is the
+   surah the juz is known to begin in.
+   ------------------------------------------------------------ */
+
+var SURAH_START_PAGE = [
+    4,   5,  70, 108, 149, 179, 211, 248, 262, 290,
+  310, 330, 348, 357, 366, 374, 395, 410, 427, 437,
+  451, 464, 479, 489, 503, 513, 527, 539, 554, 564,
+  573, 579, 583, 597, 605, 613, 620, 630, 637, 649,
+  661, 670, 679, 688, 693, 699, 706, 712, 718, 723,
+  727, 731, 734, 738, 742, 747, 752, 759, 763, 768,
+  772, 775, 777, 779, 782, 785, 789, 792, 796, 799,
+  802, 805, 808, 810, 813, 815, 818, 821, 822, 824,
+  826, 827, 828, 830, 831, 832, 833, 834, 835, 837,
+  838, 839, 840, 840, 841, 841, 842, 842, 843, 844,
+  845, 845, 846, 846, 846, 847, 847, 848, 848, 848,
+  849, 849, 849, 850
+];
+
+var JUZ_START_PAGE = [
+    4,  31,  59,  87, 115, 143, 171, 199, 227, 255,
+  283, 311, 339, 367, 395, 423, 451, 479, 507, 535,
+  561, 589, 615, 643, 669, 699, 729, 759, 789, 821
+];
+
+/* Every surah printed on a page, as a list of surah numbers.
+
+   Near the end of the Quran the surahs are short and two or three
+   of them share a page, so this can return more than one. The rule
+   matches what is printed in the page header: if any surah begins
+   on this page, the header names those; otherwise the page is a
+   continuation and the header names the one surah running through it. */
+function surahsForPage(page) {
+  var starting = [];
+  for (var i = 0; i < SURAH_START_PAGE.length; i++) {
+    if (SURAH_START_PAGE[i] === page) starting.push(i + 1);
+  }
+  if (starting.length) return starting;
+
+  var running = 1;
+  for (var j = 0; j < SURAH_START_PAGE.length; j++) {
+    if (SURAH_START_PAGE[j] < page) running = j + 1;
+  }
+  return [running];
+}
+
+/* The surah at the top of a page. */
+function surahForPage(page) {
+  return surahsForPage(page)[0];
+}
+
+/* "103. Al-Asr" or, for a shared page, "Al-Asr, Al-Humazah, Al-Fil". */
+function surahLabelForPage(page) {
+  var list = surahsForPage(page);
+  if (list.length === 1) {
+    return list[0] + ". " + getSurah(list[0]).name;
+  }
+  return list.map(function (n) { return getSurah(n).name; }).join(", ");
+}
+
+/* Which juz a page belongs to. */
+function juzForPage(page) {
+  var found = 1;
+  for (var j = 0; j < JUZ_START_PAGE.length; j++) {
+    if (JUZ_START_PAGE[j] <= page) found = j + 1;
+  }
+  return found;
+}
+
+/* The page a surah starts on. */
+function pageForSurah(number) {
+  return SURAH_START_PAGE[number - 1] || QURAN_FIRST_PAGE;
+}
 
 /* Look up a surah by its number. */
 function getSurah(number) {
   return SURAHS[number - 1] || SURAHS[0];
 }
 
-/* Work out which juz a surah + ayah falls in. */
-function juzFor(surahNumber, ayah) {
-  var juz = 1;
-  for (var i = 0; i < JUZ_STARTS.length; i++) {
-    var s = JUZ_STARTS[i][0];
-    var a = JUZ_STARTS[i][1];
-    if (surahNumber > s || (surahNumber === s && ayah >= a)) {
-      juz = i + 1;
-    }
-  }
-  return juz;
-}

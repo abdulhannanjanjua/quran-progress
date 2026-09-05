@@ -25,21 +25,12 @@
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="positionTitle">
     <h2 id="positionTitle">Update Current Position</h2>
     <form id="positionForm">
-      <label>Surah
-        <select name="surah" id="positionSurah" required></select>
+      <label>Page number
+        <input type="number" name="page" min="1" max="851" step="1"
+               inputmode="numeric" required autocomplete="off">
+        <span class="hint">The number printed at the top of the page.</span>
       </label>
-      <div class="row">
-        <label>Ayah
-          <input type="number" name="ayah" min="1" step="1" inputmode="numeric" required>
-        </label>
-        <label>Page
-          <input type="number" name="page" min="1" max="851" step="1" inputmode="numeric" required>
-        </label>
-      </div>
-      <label>Juz
-        <select name="juz" id="positionJuz"></select>
-        <span class="hint">Filled in automatically from the surah and ayah. Change it if you need to.</span>
-      </label>
+      <p class="derived" id="positionDerived"></p>
       <div class="modal-actions">
         <button type="button" class="btn-plain" data-close>Cancel</button>
         <button type="submit" class="btn-primary">Save Position</button>
@@ -56,6 +47,11 @@
       <label>Date
         <input type="date" name="date" required>
       </label>
+      <label>Page number
+        <input type="number" name="page" min="1" max="851" step="1"
+               inputmode="numeric" required autocomplete="off">
+        <span class="hint">Fills in the surah below.</span>
+      </label>
       <label>Surah
         <select name="surah" id="lessonSurah" required></select>
       </label>
@@ -67,9 +63,6 @@
           <input type="number" name="toAyah" min="1" step="1" inputmode="numeric" required>
         </label>
       </div>
-      <label>Page
-        <input type="number" name="page" min="1" max="851" step="1" inputmode="numeric">
-      </label>
       <div class="row">
         <label>Mark
           <select name="mark" id="lessonMark" required></select>

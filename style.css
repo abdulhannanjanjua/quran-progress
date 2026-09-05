@@ -163,28 +163,25 @@ p { margin: 0 0 12px; }
 .facts dt { color: var(--muted); font-size: 15px; }
 .facts dd { margin: 0; font-weight: 600; text-align: right; }
 
-/* ---------- Progress ---------- */
-
-.bar {
-  height: 12px;
-  background: var(--panel);
-  border: 1px solid var(--line);
-  border-radius: 999px;
-  overflow: hidden;
-}
-
-.bar-fill {
-  height: 100%;
-  background: var(--accent);
-}
+/* ---------- Small print ---------- */
 
 .progress-label {
   color: var(--muted);
   font-size: 15px;
-  margin: 8px 0 0;
+  margin: 12px 0 0;
 }
 
-.card .bar + .progress-label { margin-top: 10px; }
+/* The "page 430 is Surah 19, Maryam, in Juz 16" line in the
+   Update Position box. */
+.derived {
+  background: var(--panel);
+  border: 1px solid var(--line);
+  border-radius: var(--radius);
+  padding: 12px 14px;
+  margin: 0 0 16px;
+  font-size: 15px;
+  color: var(--ink);
+}
 
 /* ---------- Badges ---------- */
 
